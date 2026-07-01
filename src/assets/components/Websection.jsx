@@ -15,6 +15,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { BlogCard } from '@/assets/components/BlogCard'
+import { blogPosts } from '@/data/blogPosts'
 
 const TAB_OPTIONS = [
   { value: 'highlight', label: 'Highlight' },
@@ -172,20 +174,16 @@ export function ArticleSection () {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('highlight')
 
-  const articlesData = {
-    highlight: [
-      { id: 1, title: 'Getting Started with React in 2026', desc: 'Learn the core concepts of React...' },
-    ],
-    cat: [
-      { id: 2, title: 'Why Cats Love Boxes So Much', desc: 'A deep dive into feline behavior...' },
-    ],
-    inspiration: [
-      { id: 3, title: 'Designing for the Future', desc: 'Inspirational trends in modern web design...' },
-    ],
-    general: [
-      { id: 4, title: 'Tips for Better Workspace Productivity', desc: 'Simple tweaks to optimize your desk setup...' },
-    ],
-  }
+  const getFilteredPosts = (tabValue) =>
+    blogPosts.filter((post) => {
+      const matchesCategory =
+        tabValue === 'highlight' || post.category.toLowerCase() === tabValue
+      const matchesSearch = post.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+
+      return matchesCategory && matchesSearch
+    })
 
   const tabTriggerClass =
     'px-5 py-2.5 text-sm font-medium rounded-xl transition-all !text-[#999999] data-[state=active]:bg-[#D9D6D0] data-[state=active]:!text-[#1A1A1A] data-[state=active]:shadow-none'
@@ -194,7 +192,7 @@ export function ArticleSection () {
     'w-full bg-white text-sm py-2.5 px-4 rounded-xl border border-[#D9D6D0] shadow-none outline-none transition-all'
 
   return (
-    <section className="w-full max-w-[1200px] mx-auto px-4 pt-8 pb-8 md:p-8 font-sans">
+    <section className="w-full max-w-[1200px] mx-auto px-4 pt-8 pb-0 md:p-8 md:pb-8 font-sans">
       <h2 className="text-2xl font-bold text-[#1A1A1A] mb-6">
         Latest articles
       </h2>
@@ -240,22 +238,32 @@ export function ArticleSection () {
         </div>
 
         <div className="mt-8">
-          {Object.keys(articlesData).map((category) => (
-            <TabsContent key={category} value={category} className="outline-none">
+          {TAB_OPTIONS.map((tab) => (
+            <TabsContent key={tab.value} value={tab.value} className="outline-none">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {articlesData[category]
-                  .filter((article) =>
-                    article.title.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((article) => (
-                    <div key={article.id} className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{article.title}</h3>
-                      <p className="text-sm text-gray-600">{article.desc}</p>
-                    </div>
-                  ))}
+                {getFilteredPosts(tab.value).map((post) => (
+                  <BlogCard
+                    key={post.id}
+                    image={post.image}
+                    category={post.category}
+                    title={post.title}
+                    description={post.description}
+                    author={post.author}
+                    date={post.date}
+                  />
+                ))}
               </div>
             </TabsContent>
           ))}
+        </div>
+
+        <div className="mt-8 flex justify-center pb-4 md:pb-0">
+          <button
+            type="button"
+            className="inline-block rounded-[25px] border border-[#777777] bg-transparent px-7 py-2.5 text-base font-medium text-[#222222] transition-all duration-200 ease-in-out hover:bg-[#eeeeee]"
+          >
+            View more
+          </button>
         </div>
       </Tabs>
     </section>
