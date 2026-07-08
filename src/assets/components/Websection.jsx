@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { ExternalLink, GitBranch, Globe, Menu, Search } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
@@ -16,7 +17,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { BlogCard } from '@/assets/components/BlogCard'
-import { blogPosts } from '@/data/blogPosts'
 
 const TAB_OPTIONS = [
   { value: 'highlight', label: 'Highlight' },
@@ -176,20 +176,65 @@ export function Footer () {
 export function ArticleSection () {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('highlight')
+  
+  // States สำหรับจัดการข้อมูลจาก API
+  const [posts, setPosts] = useState([])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const getFilteredPosts = (tabValue) =>
-    blogPosts.filter((post) => {
-      const matchesCategory =
-        tabValue === 'highlight' || post.category.toLowerCase() === tabValue
-      const matchesSearch = post.title
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase())
+  // ฟังก์ชันสำหรับดึงข้อมูลจาก API
+  const fetchBlogPosts = async (currentPage, categoryTab, search, isLoadMore = false) => {
+    try {
+      setIsLoading(true)
+      
+      // เตรียม Query Parameters สำหรับส่งให้ API
+      const params = {
+        page: currentPage,
+        // ถ้าแท็บเป็น highlight ไม่ต้องส่งคิวรี่ category เพื่อให้ดึงทั้งหมด (หรือตามเงื่อนไขหลังบ้าน)
+        ...(categoryTab !== 'highlight' && { category: categoryTab }),
+        ...(search && { search: search })
+      }
 
-      return matchesCategory && matchesSearch
-    })
+      const response = await axios.get('https://blog-post-project-api.vercel.app/posts', { params })
+      const data = response.data
+
+      if (isLoadMore) {
+        // ถ้ากด View more ให้เอาข้อมูลใหม่ไปต่อท้ายข้อมูลเดิม
+        setPosts((prevPosts) => [...prevPosts, ...data.posts])
+      } else {
+        // ถ้าเปลี่ยนแท็บหรือเซิร์ชใหม่ ให้เขียนทับข้อมูลเดิมไปเลย
+        setPosts(data.posts)
+      }
+      
+      setTotalPages(data.totalPages)
+    } catch (error) {
+      console.error('Error fetching blog posts:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Trigger ดึงข้อมูลใหม่เมื่อเปลี่ยนแท็บ (activeTab) หรือ หน้าเพจ (page)
+  useEffect(() => {
+    fetchBlogPosts(page, activeTab, searchQuery, page > 1)
+  }, [page, activeTab])
+
+  // Trigger ดึงข้อมูลเมื่อผู้ใช้พิมพ์ค้นหา (แนะนำให้ใส่ Debounce เพิ่มเติมในอนาคตเพื่อประหยัดการยิง API)
+  useEffect(() => {
+    setPage(1) // รีเซ็ตกลับไปหน้าแรกก่อนเสมอเมื่อมีการพิมพ์ค้นหา
+    fetchBlogPosts(1, activeTab, searchQuery, false)
+  }, [searchQuery])
+
+  // ฟังก์ชันกดปุ่มโหลดข้อมูลหน้าถัดไป
+  const handleLoadMore = () => {
+    if (page < totalPages) {
+      setPage((prevPage) => prevPage + 1)
+    }
+  }
 
   const tabTriggerClass =
-  'px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 !text-[#999999] hover:bg-[#F0EEEA] hover:text-[#1A1A1A] data-[state=active]:bg-[#D9D6D0] data-[state=active]:!text-[#1A1A1A] data-[state=active]:hover:bg-[#D9D6D0] data-[state=active]:shadow-none'
+    'px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 !text-[#999999] hover:bg-[#F0EEEA] hover:text-[#1A1A1A] data-[state=active]:bg-[#D9D6D0] data-[state=active]:!text-[#1A1A1A] data-[state=active]:hover:bg-[#D9D6D0] data-[state=active]:shadow-none'
 
   const mobileFieldClass =
     'w-full bg-white text-sm py-2.5 px-4 rounded-xl border border-[#D9D6D0] shadow-none outline-none transition-all'
@@ -200,11 +245,24 @@ export function ArticleSection () {
         Latest articles
       </h2>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs 
+        value={activeTab} 
+        onValueChange={(val) => {
+          setActiveTab(val)
+          setPage(1) // รีเซ็ตเพจกลับเป็นหน้าแรกเมื่อเปลี่ยนประเภทแท็บ
+        }} 
+        className="w-full"
+      >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-[#F5F4F2] p-4 md:p-2 rounded-2xl w-full">
           <div className="order-2 md:hidden w-full flex flex-col gap-1">
             <span className="text-sm text-[#999999]">Category</span>
-            <Select value={activeTab} onValueChange={setActiveTab}>
+            <Select 
+              value={activeTab} 
+              onValueChange={(val) => {
+                setActiveTab(val)
+                setPage(1)
+              }}
+            >
               <SelectTrigger
                 className={`${mobileFieldClass} !h-auto justify-between text-[#999999] [&_[data-slot=select-value]]:text-[#999999] [&_svg]:text-[#999999] md:w-fit md:rounded-lg md:border-input md:shadow-none`}
               >
@@ -241,33 +299,43 @@ export function ArticleSection () {
         </div>
 
         <div className="mt-8">
-          {/* ใช้ TabsContent ตัวเดียว ผูกกับค่า activeTab ปัจจุบัน */}
           <TabsContent value={activeTab} className="outline-none">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* วนลูปแสดงผลเฉพาะบทความของแท็บที่กำลังเปิดอยู่เท่านั้น */}
-              {getFilteredPosts(activeTab).map((post) => (
-                <BlogCard
-                 key={post.id}
-                 image={post.image}
-                 category={post.category}
-                 title={post.title}
-                 description={post.description}
-                 author={post.author}
-                 date={post.date}
-               />
-            ))}
-            </div>
-         </TabsContent>
+            {/* แสดงข้อความแจ้งเตือนเมื่อกำลังโหลดหน้าแรก */}
+            {isLoading && page === 1 ? (
+              <div className="text-center py-10 text-gray-500">Loading articles...</div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">No articles found.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {posts.map((post) => (
+                  <BlogCard
+                    key={post.id}
+                    image={post.image}
+                    category={post.category}
+                    title={post.title}
+                    description={post.description}
+                    author={post.author}
+                    date={post.date}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
         </div>
 
-        <div className="mt-8 flex justify-center pb-4 md:pb-0">
-          <button
-            type="button"
-            className="inline-block rounded-[25px] border border-[#777777] bg-transparent px-7 py-2.5 text-base font-medium text-[#222222] transition-all duration-200 ease-in-out hover:bg-[#eeeeee]"
-          >
-            View more
-          </button>
-        </div>
+        {/* ปุ่ม View more จะปรากฏเมื่อหน้านั้นๆ ยังมีหน้าถัดไปให้โหลดต่อได้ */}
+        {page < totalPages && (
+          <div className="mt-8 flex justify-center pb-4 md:pb-0">
+            <button
+              type="button"
+              onClick={handleLoadMore}
+              disabled={isLoading}
+              className="inline-block rounded-[25px] border border-[#777777] bg-transparent px-7 py-2.5 text-base font-medium text-[#222222] transition-all duration-200 ease-in-out hover:bg-[#eeeeee] disabled:opacity-50"
+            >
+              {isLoading ? 'Loading...' : 'View more'}
+            </button>
+          </div>
+        )}
       </Tabs>
     </section>
   )
