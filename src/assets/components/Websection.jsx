@@ -26,12 +26,18 @@ const TAB_OPTIONS = [
 ]
 
 export function Nav() {
+  const [isOpen, setIsOpen] = useState(false)
+
   return (
-    <nav className="flex w-full items-center justify-between bg-[#fcfcfc] px-4 py-[15px] border-b-2 border-[#3498db] md:px-10">
+    // เพิ่ม relative เข้ามาที่ <nav> เพื่อให้ตัวเมนูดรอปดาวน์อ้างอิงตำแหน่งได้ถูกต้อง
+    <nav className="relative flex w-full items-center justify-between bg-[#fcfcfc] px-4 py-[15px] border-b-2 border-[#3498db] md:px-10 z-50">
+      
+      {/* โลโก้ */}
       <div className="text-[28px] md:text-[32px] font-bold text-[#333333] tracking-[-1px]">
         hh<span className="text-[#2ecc71]">.</span>
       </div>
 
+      {/* เมนูสำหรับหน้าจอขนาดใหญ่ (Desktop) */}
       <div className="hidden md:flex gap-3">
         <a href="#" className="inline-block text-[16px] font-medium px-7 py-2.5 rounded-[25px] text-[#222222] border border-[#777777] bg-transparent transition-all duration-200 ease-in-out hover:bg-[#eeeeee]">
           Log in
@@ -41,36 +47,33 @@ export function Nav() {
         </a>
       </div>
 
-      <Sheet>
-        <SheetTrigger asChild>
-          <button
-            type="button"
-            className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-[#333333] hover:bg-[#eeeeee] transition-colors"
-            aria-label="Open menu"
+      {/* ปุ่ม Hamburger สําหรับ Mobile */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)} // กดแล้วสลับสถานะเปิด-ปิด
+        className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-[#333333] hover:bg-[#eeeeee] transition-colors"
+        aria-label="Toggle menu"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
+
+      {/* แผงเมนูดรอปดาวน์สไตล์ Mobile (จะแสดงผลเมื่อ isOpen = true เท่านั้น) */}
+      {isOpen && (
+        <div className="absolute top-full left-0 w-full bg-[#fcfcfc] border-t border-gray-200 px-6 py-8 flex flex-col gap-4 md:hidden shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+          <a
+            href="#"
+            className="w-full text-center text-[16px] font-medium px-7 py-3 rounded-[30px] text-[#222222] border border-[#777777] bg-transparent transition-all duration-200 ease-in-out hover:bg-[#eeeeee]"
           >
-            <Menu className="h-6 w-6" />
-          </button>
-        </SheetTrigger>
-        <SheetContent side="right" className="w-[280px] bg-[#fcfcfc]">
-          <SheetHeader>
-            <SheetTitle className="text-[#333333]">Menu</SheetTitle>
-          </SheetHeader>
-          <div className="flex flex-col gap-3 px-2">
-            <a
-              href="#"
-              className="inline-block text-center text-[16px] font-medium px-7 py-2.5 rounded-[25px] text-[#222222] border border-[#777777] bg-transparent transition-all duration-200 ease-in-out hover:bg-[#eeeeee]"
-            >
-              Log in
-            </a>
-            <a
-              href="#"
-              className="inline-block text-center text-[16px] font-medium px-7 py-2.5 rounded-[25px] text-white bg-[#222220] border border-[#222220] transition-all duration-200 ease-in-out hover:bg-[#333331]"
-            >
-              Sign up
-            </a>
-          </div>
-        </SheetContent>
-      </Sheet>
+            Log in
+          </a>
+          <a
+            href="#"
+            className="w-full text-center text-[16px] font-medium px-7 py-3 rounded-[30px] text-white bg-[#222220] border border-[#222220] transition-all duration-200 ease-in-out hover:bg-[#333331]"
+          >
+            Sign up
+          </a>
+        </div>
+      )}
     </nav>
   )
 }
@@ -186,7 +189,7 @@ export function ArticleSection () {
     })
 
   const tabTriggerClass =
-    'px-5 py-2.5 text-sm font-medium rounded-xl transition-all !text-[#999999] data-[state=active]:bg-[#D9D6D0] data-[state=active]:!text-[#1A1A1A] data-[state=active]:shadow-none'
+  'px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 !text-[#999999] hover:bg-[#F0EEEA] hover:text-[#1A1A1A] data-[state=active]:bg-[#D9D6D0] data-[state=active]:!text-[#1A1A1A] data-[state=active]:hover:bg-[#D9D6D0] data-[state=active]:shadow-none'
 
   const mobileFieldClass =
     'w-full bg-white text-sm py-2.5 px-4 rounded-xl border border-[#D9D6D0] shadow-none outline-none transition-all'
