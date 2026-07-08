@@ -238,23 +238,23 @@ export function ArticleSection () {
         </div>
 
         <div className="mt-8">
-          {TAB_OPTIONS.map((tab) => (
-            <TabsContent key={tab.value} value={tab.value} className="outline-none">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {getFilteredPosts(tab.value).map((post) => (
-                  <BlogCard
-                    key={post.id}
-                    image={post.image}
-                    category={post.category}
-                    title={post.title}
-                    description={post.description}
-                    author={post.author}
-                    date={post.date}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-          ))}
+          {/* ใช้ TabsContent ตัวเดียว ผูกกับค่า activeTab ปัจจุบัน */}
+          <TabsContent value={activeTab} className="outline-none">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* วนลูปแสดงผลเฉพาะบทความของแท็บที่กำลังเปิดอยู่เท่านั้น */}
+              {getFilteredPosts(activeTab).map((post) => (
+                <BlogCard
+                 key={post.id}
+                 image={post.image}
+                 category={post.category}
+                 title={post.title}
+                 description={post.description}
+                 author={post.author}
+                 date={post.date}
+               />
+            ))}
+            </div>
+         </TabsContent>
         </div>
 
         <div className="mt-8 flex justify-center pb-4 md:pb-0">
