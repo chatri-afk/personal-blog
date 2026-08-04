@@ -128,3 +128,11 @@
     @apply font-sans;
     }
 }
+
+/* Sonner: อนุญาตให้ toast บทความกว้างกว่าค่า default (~356px) */
+[data-sonner-toast].article-toast,
+li[data-sonner-toast].article-toast {
+  --width: 560px !important;
+  width: 560px !important;
+  max-width: calc(100vw - 2rem) !important;
+}
