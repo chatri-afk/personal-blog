@@ -15,7 +15,6 @@ export const mockGeneralUserData = {
   username: 'somchai.dev',
   email: 'somchai.dee@gmail.com',
   avatar: '',
-  bio: '',
   password: 'password123',
   role: 'member',
 }
