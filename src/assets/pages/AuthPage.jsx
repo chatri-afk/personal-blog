@@ -2,14 +2,28 @@ import { Nav, Footer } from '../components/WebSection.jsx'
 import { useState, useEffect } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../components/AuthContext'
-import { mockUsers } from '../../data/member'
+import { useLocation } from 'react-router-dom'
+import { useAuth } from '../../contexts/authentication.jsx'
+
+const errorToastOptions = {
+  description: 'Please try another password or email',
+  duration: 5000,
+  unstyled: true,
+  classNames: {
+    toast:
+      'w-full max-w-[450px] bg-[#e74c3c] text-white flex items-start justify-between p-5 rounded-lg shadow-xl font-sans antialiased relative',
+    title: 'text-[15px] font-semibold block mb-0.5 tracking-wide',
+    description: 'text-xs text-white/90 font-light block pr-8',
+    closeButton: 'absolute top-4 right-4 text-white/80 hover:text-white transition-colors',
+  },
+  closeButton: true,
+}
 
 export default function AuthPage() {
   const location = useLocation()
-  const navigate = useNavigate()
-  const { login } = useAuth()
+  // login / register เรียก API จริง และเก็บ token ใน localStorage
+  const { login, register, state } = useAuth()
+  const isLoading = Boolean(state.loading)
 
   // สเตทสำหรับควบคุมการแสดงหน้าจอ: 'signup' | 'login' | 'success'
   const [authView, setAuthView] = useState(() => {
@@ -58,7 +72,7 @@ export default function AuthPage() {
     return errors
   }
 
-  const handleSignupSubmit = (e) => {
+  const handleSignupSubmit = async (e) => {
     e.preventDefault()
     const errors = validateSignup()
     if (Object.keys(errors).length > 0) {
@@ -66,27 +80,39 @@ export default function AuthPage() {
       return
     }
     setSignupErrors({})
+
+    // ส่งไป POST /auth/register — field ตรงกับ backend
+    const result = await register({
+      name: signupForm.name.trim(),
+      username: signupForm.username.trim(),
+      email: signupForm.email.trim(),
+      password: signupForm.password,
+    })
+
+    if (result?.error) {
+      toast.error(result.error, errorToastOptions)
+      return
+    }
+
+    // สมัครสำเร็จ → แสดงหน้า success ในหน้าเดียวกัน (ไม่ต้องมี route แยก)
     setAuthView('success')
   }
 
 
-  // ─── 🟢 LOG IN STATES, VALIDATION & SUBMIT ───
+  // ─── LOG IN STATES, VALIDATION & SUBMIT ───
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
-  // สเตทสำหรับเก็บ Error ของฝั่ง Log in
   const [loginErrors, setLoginErrors] = useState({})
 
   const validateLogin = () => {
     const errors = {}
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-    // 1. ตรวจสอบรูปแบบ Email ของ Log in
     if (!loginForm.email.trim()) {
       errors.email = 'Email is required'
     } else if (!emailRegex.test(loginForm.email)) {
       errors.email = 'Email must be a valid email'
     }
 
-    // 2. ตรวจสอบรหัสผ่านเบื้องต้น (เช่น ต้องไม่ว่าง หรือต้องมีความยาว 8 ตัวอักษรขึ้นไปตามเงื่อนไขสมัคร)
     if (!loginForm.password) {
       errors.password = 'Password is required'
     } else if (loginForm.password.length < 8) {
@@ -96,7 +122,7 @@ export default function AuthPage() {
     return errors
   }
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault()
 
     const errors = validateLogin()
@@ -107,36 +133,22 @@ export default function AuthPage() {
 
     setLoginErrors({})
 
-    // หา user จาก email + password ใน mock data
-    const matchedUser = mockUsers.find(
-      (u) =>
-        u.email.toLowerCase() === loginForm.email.trim().toLowerCase() &&
-        u.password === loginForm.password
-    )
+    // POST /auth/login → ได้ access_token → context เก็บ token + ดึง user + ไปหน้า /
+    const result = await login({
+      email: loginForm.email.trim(),
+      password: loginForm.password,
+    })
 
-    if (!matchedUser) {
-      setLoginErrors({ password: 'Your password is incorrect' })
-      toast.error("Your password is incorrect or this email doesn't exist", {
+    if (result?.error) {
+      setLoginErrors({ password: result.error })
+      toast.error(result.error, {
+        ...errorToastOptions,
         description: 'Please try another password or email',
-        duration: 5000,
-        unstyled: true,
-        classNames: {
-          toast:
-            'w-full max-w-[450px] bg-[#e74c3c] text-white flex items-start justify-between p-5 rounded-lg shadow-xl font-sans antialiased relative',
-          title: 'text-[15px] font-semibold block mb-0.5 tracking-wide',
-          description: 'text-xs text-white/90 font-light block pr-8',
-          closeButton: 'absolute top-4 right-4 text-white/80 hover:text-white transition-colors',
-        },
-        closeButton: true,
       })
       return
     }
 
-    // ส่งข้อมูล user ที่ตรงกับอีเมลเข้า Context (ไม่ใช้ค่า default Somchai ตลอด)
-    const { password: _password, ...safeUser } = matchedUser
-    login(safeUser)
-    toast.success(`Logged in as ${safeUser.name}`)
-    navigate('/')
+    toast.success('Logged in successfully')
   }
 
   return (
@@ -199,8 +211,12 @@ export default function AuthPage() {
               </div>
 
               <div className="flex flex-col items-center gap-5 pt-4">
-                <button type="submit" className="px-10 py-3.5 bg-[#222220] hover:bg-[#333331] text-white font-medium rounded-full text-sm transition-colors shadow-sm">
-                  Sign up
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-10 py-3.5 bg-[#222220] hover:bg-[#333331] text-white font-medium rounded-full text-sm transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Signing up...' : 'Sign up'}
                 </button>
                 <p className="text-sm text-[#666666] font-light text-center">
                   Already have an account?{' '}
@@ -268,8 +284,12 @@ export default function AuthPage() {
               </div>
 
               <div className="flex flex-col items-center gap-5 pt-4">
-                <button type="submit" className="px-12 py-3.5 bg-[#222220] hover:bg-[#333331] text-white font-medium rounded-full text-sm transition-colors shadow-sm">
-                  Log in
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-12 py-3.5 bg-[#222220] hover:bg-[#333331] text-white font-medium rounded-full text-sm transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Logging in...' : 'Log in'}
                 </button>
                 <p className="text-sm text-[#666666] font-light text-center">
                   Don't have any account?{' '}

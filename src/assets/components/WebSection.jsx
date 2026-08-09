@@ -165,11 +165,11 @@ export function Nav() {
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none"
               >
                 <img 
-                  src={user.avatar || 'https://via.placeholder.com/150'} 
-                  alt={user.name} 
+                  src={user?.avatar || 'https://via.placeholder.com/150'} 
+                  alt={user?.name || 'User'} 
                   className="w-9 h-9 rounded-full object-cover border border-gray-200"
                 />
-                <span className="text-sm font-medium text-[#333333]">{user.name}</span>
+                <span className="text-sm font-medium text-[#333333]">{user?.name}</span>
                 <ChevronDown size={14} className="text-gray-500" />
               </button>
 

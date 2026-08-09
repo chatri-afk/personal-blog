@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import {
   FileText,
@@ -17,7 +17,6 @@ const navLinkClass = (isActive) =>
 
 export function AdminSidebar() {
   const { logout } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
 
   const isArticleActive =
@@ -35,8 +34,8 @@ export function AdminSidebar() {
   const isResetPasswordActive = location.pathname === '/admin/reset-password'
 
   const handleLogout = () => {
+    // logout() ใน AuthProvider จะ clear token + navigate('/') ให้แล้ว
     logout()
-    navigate('/')
   }
 
   return (
